@@ -9,9 +9,11 @@ class RobotNavigation:
         self.actions = actions # Acciones posibles para el robot
         self.state_values = [[0 for _ in range(map_size[1])] for _ in range(map_size[0])]  # Valores iniciales para cada estado
 
-    def value_iteration_classic(self):
-        # Implementa Value Iteration Clásico
-        threshold = 0.001
+    def value_iteration_classic(self, isClassic=True):
+        if isClassic:
+            threshold = 1
+        else:
+            threshold = 0.01
         delta = threshold
         while delta >= threshold:
             delta = 0
@@ -37,29 +39,29 @@ class RobotNavigation:
                     delta = max(delta, abs(v - self.state_values[i][j]))
         return self.state_values
 
-    # def relative_value_iteration(self):
-    #     # Implementa Relative Value Iteration
-    #     return
+    def relative_value_iteration(self):
+        # Implementa Relative Value Iteration
+        pass
 
-    # def gauss_siedel_value_iteration(self):
-    #     # Implementa Gauss-Siedel Value Iteration
-    #     return
+    def gauss_siedel_value_iteration(self):
+        # Implementa Gauss-Siedel Value Iteration
+        pass
 
-    # def value_iteration_discounted(self):
-    #     # Implementa Value Iteration Clásico con Factor de Descuento
-    #     return
+    def value_iteration_discounted(self):
+        # Implementa Value Iteration Clásico con Factor de Descuento
+        pass
 
-    # def relative_value_iteration_discounted(self):
-    #     # Implementa Relative Value Iteration con Factor de Descuento
-    #     return
+    def relative_value_iteration_discounted(self):
+        # Implementa Relative Value Iteration con Factor de Descuento
+        pass
 
-    # def q_value_iteration_classic(self):
-    #     # Implementa Q-Value Iteration Clásico
-    #     return
+    def q_value_iteration_classic(self):
+        # Implementa Q-Value Iteration Clásico
+        pass
 
-    # def q_value_iteration_discounted(self):
-    #     # Implementa Q-Value Iteration con Factor de Descuento
-    #     return
+    def q_value_iteration_discounted(self):
+        # Implementa Q-Value Iteration con Factor de Descuento
+        pass
     
 # Uso de la clase para simulación
 if __name__ == "__main__":

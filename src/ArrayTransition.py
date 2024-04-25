@@ -45,3 +45,5 @@ for fila in range(num_filas):
 for matriz in T.values():
     matriz[29, :] = 0
     matriz[29, 29] = 1.0
+
+# %%
