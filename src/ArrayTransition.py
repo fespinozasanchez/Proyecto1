@@ -1,49 +1,69 @@
 #%%
 import numpy as np
+import json
 
-# Matriz de estados como la proporcionada en la tabla
+# Matriz del mapa (Laberinto del robot) donde 1 es camino y -1 es obstáculo
 estado_tabla = [
-    [0, 1, 2, 3, 4, 5, 6, -1, -1],
-    [7, -1, -1, 8, -1, -1, 9, -1, -1],
-    [10, 11, -1, 12, -1, -1, 13, -1, -1],
-    [-1, 15, 16, -1, 18, 19, 20, 21, 22],
-    [23, 24, -1, 25, 26, -1, 27, -1, -1],
-    [28, -1, -1, -1, -1, -1, 30, -1, -1],
-    [31, 32, 33, 34, -1, -1, -1, -1, -1]
+    [1,  1,  1,  1,  1,  1,  1, -1, -1],
+    [1, -1, -1,  1, -1, -1,  1, -1, -1],
+    [1,  1, -1,  1, -1, -1,  1, -1, -1],
+    [-1, 1,  1, -1,  1,  1,  1,  1,  1],
+    [1,  1, -1,  1,  1, -1,  1, -1, -1],
+    [1, -1, -1, -1, -1, -1,  1, -1, -1],
+    [1,  1,  1,  1, -1, -1, -1, -1, -1]
 ]
 
 estado_array = np.array(estado_tabla)
 num_filas, num_cols = estado_array.shape
-n_estados = 35
+n_estados = num_filas * num_cols
 
 # Inicialización de matrices de transición
 T = {dir: np.zeros((n_estados, n_estados)) for dir in ['norte', 'sur', 'este', 'oeste']}
+R = np.zeros((n_estados, n_estados))  # Matriz de recompensas
+
+# Probabilidad de éxito y error
 prob_exito = 0.9
-prob_fracaso = 0.1
+prob_error = 0.1
 
-# Función para determinar si una posición es válida y no es una muralla
-def es_valido(fila, col):
-    return 0 <= fila < num_filas and 0 <= col < num_cols and estado_array[fila, col] != -1
+# Rellenar matriz de recompensas y transiciones
+for i in range(num_filas):
+    for j in range(num_cols):
+        estado_actual = i * num_cols + j
+        if estado_array[i, j] == -1:
+            continue  # No acciones desde un obstáculo
+        acciones_posibles = []
+        for dir, vec in zip(['norte', 'sur', 'este', 'oeste'], [(-1, 0), (1, 0), (0, 1), (0, -1)]):
+            ni, nj = i + vec[0], j + vec[1]
+            if 0 <= ni < num_filas and 0 <= nj < num_cols and estado_array[ni, nj] != -1:
+                estado_siguiente = ni * num_cols + nj
+            else:
+                estado_siguiente = estado_actual  # Se queda en el mismo lugar si el movimiento es inválido
+            acciones_posibles.append((dir, estado_siguiente))
 
-# Rellenar las matrices de transición
-for fila in range(num_filas):
-    for col in range(num_cols):
-        estado_actual = estado_array[fila, col]
-        if estado_actual == -1:
-            continue
-        
-        # Direcciones posibles con manejo de bordes y murallas
-        direcciones = {'norte': (fila - 1, col), 'sur': (fila + 1, col),
-                       'este': (fila, col + 1), 'oeste': (fila, col - 1)}
-        
-        for direccion, (n_fila, n_col) in direcciones.items():
-            if es_valido(n_fila, n_col):
-                T[direccion][estado_actual, estado_array[n_fila, n_col]] = prob_exito
-            T[direccion][estado_actual, estado_actual] += prob_fracaso
+        # Aplicar probabilidad de éxito y error correctamente
+        for dir, estado_siguiente in acciones_posibles:
+            T[dir][estado_actual, estado_siguiente] += prob_exito
+            for other_dir, other_estado in acciones_posibles:
+                if other_dir != dir:
+                    T[other_dir][estado_actual, estado_siguiente] += prob_error / 3  # Dividir error entre las otras tres direcciones
 
-# Asegurar que todos los movimientos en el estado meta (29) se quedan en 29
-for matriz in T.values():
-    matriz[29, :] = 0
-    matriz[29, 29] = 1.0
+        # Normalizar filas para que la suma sea 1
+        for dir in T:
+            suma = np.sum(T[dir][estado_actual, :])
+            if suma != 0:
+                T[dir][estado_actual, :] /= suma
 
-# %%
+# Definir recompensas
+if i == 5 and j == 3:
+    R[estado_actual, estado_actual] = 100  # Recompensa alta para el estado objetivo
+else:
+    R[estado_actual, estado_actual] = 0  # Recompensa neutra para otros estados
+
+# Convertir las matrices numpy a listas y guardarlas en un archivo JSON
+matrices_dict = {dir: matriz.tolist() for dir, matriz in T.items()}
+with open('matrices_transicion.json', 'w') as file:
+    json.dump(matrices_dict, file, indent=4)
+
+# Guardar matriz de recompensas
+with open('matriz_recompensas.json', 'w') as file:
+    json.dump(R.tolist(), file, indent=4)

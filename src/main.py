@@ -1,6 +1,11 @@
+#%%
 #Proyecto#1: Robótica_INFO1167
 #Felipe Espinoza - Oscar Uribe
-#%%
+
+import numpy as np
+import json
+import pygame
+
 class RobotNavigation:
     def __init__(self, map_size, success_probability=0.90, discount_factor=0.98, actions=['N', 'S', 'E', 'W']):
         self.map_size = map_size  # Dimensiones del mapa
@@ -62,19 +67,26 @@ class RobotNavigation:
     def q_value_iteration_discounted(self):
         # Implementa Q-Value Iteration con Factor de Descuento
         pass
-    
-# Uso de la clase para simulación
+
+
 if __name__ == "__main__":
+
+    with open('matrices_transicion.json', 'r') as file:
+        matrices = json.load(file)
+
+    north = matrices['norte']
+    south = matrices['sur']
+    west = matrices['este']
+    oest = matrices['oeste']
+
     map_size = (7, 5)
     robot_nav = RobotNavigation(map_size)
-    values = robot_nav.value_iteration_classic()
-    print("Values after value iteration:", values)
-
+    #robot_nav.value_iteration_classic()
     # robot_nav = RobotNavigation(map_size)
     # robot_nav.value_iteration_classic()
     # robot_nav.relative_value_iteration()
     # robot_nav.gauss_siedel_value_iteration()
     # robot_nav.value_iteration_discounted()
     # robot_nav.relative_value_iteration_discounted()
-    # robot_nav.q_value_iteration_classic()
+    # robot_nav.q_value_iteration_classic() 
     # robot_nav.q_value_iteration_discounted()
