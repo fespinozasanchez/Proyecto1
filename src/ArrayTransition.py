@@ -3,7 +3,7 @@ import numpy as np
 import json
 
 # Matriz del mapa (Laberinto del robot) donde 1 es camino y -1 es obstáculo
-estado_tabla = [
+Mapa = [
     [1,  1,  1,  1,  1,  1,  1, -1, -1],
     [1, -1, -1,  1, -1, -1,  1, -1, -1],
     [1,  1, -1,  1, -1, -1,  1, -1, -1],
@@ -13,13 +13,12 @@ estado_tabla = [
     [1,  1,  1,  1, -1, -1, -1, -1, -1]
 ]
 
-estado_array = np.array(estado_tabla)
+estado_array = np.array(Mapa)
 num_filas, num_cols = estado_array.shape
 n_estados = num_filas * num_cols
 
 # Inicialización de matrices de transición
 T = {dir: np.zeros((n_estados, n_estados)) for dir in ['norte', 'sur', 'este', 'oeste']}
-R = np.zeros((n_estados, n_estados))  # Matriz de recompensas
 
 # Probabilidad de éxito y error
 prob_exito = 0.9
@@ -53,17 +52,8 @@ for i in range(num_filas):
             if suma != 0:
                 T[dir][estado_actual, :] /= suma
 
-# Definir recompensas
-if i == 5 and j == 3:
-    R[estado_actual, estado_actual] = 100  # Recompensa alta para el estado objetivo
-else:
-    R[estado_actual, estado_actual] = 0  # Recompensa neutra para otros estados
-
 # Convertir las matrices numpy a listas y guardarlas en un archivo JSON
 matrices_dict = {dir: matriz.tolist() for dir, matriz in T.items()}
 with open('matrices_transicion.json', 'w') as file:
     json.dump(matrices_dict, file, indent=4)
 
-# Guardar matriz de recompensas
-with open('matriz_recompensas.json', 'w') as file:
-    json.dump(R.tolist(), file, indent=4)
