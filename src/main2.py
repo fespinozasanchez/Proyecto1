@@ -1,5 +1,6 @@
 import numpy as np
-np.set_printoptions(threshold=np.inf, linewidth=np.inf)
+# Esto solo es para imprimir matrices completas en consola 
+#np.set_printoptions(threshold=np.inf, linewidth=np.inf)
 
 def norma_sp(aA, aB, nError=0):
     return (max([abs(aA[i]-aB[i]) for i in range(len(aA))]))
@@ -21,9 +22,12 @@ def index_to_pos(index, nCols):
     return (index // nCols, index % nCols)
 
 def build_transition_matrix(aMap, action, p_success=0.9, p_side=0.05):
+    """ Con esta función tomamos en cuenta las probabilidades de éxito y de ir a los lados  90% , 5% y 5% respectivamente 
+        Ademas se toma en cuenta las murallas y bloques invisibles.
+    """
     nRows, nCols = len(aMap), len(aMap[0])
     nStates = nRows * nCols
-    T = np.zeros((nStates, nStates))  # Matriz de transición
+    T = np.zeros((nStates, nStates))  # Matriz de transición initializada en 0
     
     for row in range(nRows):
         for col in range(nCols):
@@ -98,7 +102,7 @@ def main():
 
 
 
-    print(len(T_N))
+    print(T_N)
 
 if __name__ == "__main__":
     main()
