@@ -1,4 +1,4 @@
-# %%
+#%%
 import numpy as np
 # Esto solo es para imprimir matrices completas en consola
 # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
