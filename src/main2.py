@@ -204,6 +204,7 @@ def main():
     results = {sp: simulate_agent(sp[0], sp[1], aPoliticas.flatten(), map()) for sp in starting_points}
 
     print(results)
+    return aMap
 
 if __name__ == "__main__":
     main()

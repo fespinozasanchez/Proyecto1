@@ -1,59 +1,86 @@
-#%%
 import numpy as np
-import json
+import pygame
+import time  # Importar time para retrasos
 
-# Matriz del mapa (Laberinto del robot) donde 1 es camino y -1 es obstáculo
-Mapa = [
-    [1,  1,  1,  1,  1,  1,  1, -1, -1],
-    [1, -1, -1,  1, -1, -1,  1, -1, -1],
-    [1,  1, -1,  1, -1, -1,  1, -1, -1],
-    [-1, 1,  1, -1,  1,  1,  1,  1,  1],
-    [1,  1, -1,  1,  1, -1,  1, -1, -1],
-    [1, -1, -1, -1, -1, -1,  1, -1, -1],
-    [1,  1,  1,  1, -1, -1, -1, -1, -1]
-]
+# Inicialización de Pygame
+pygame.init()
+screen_size = (720, 540)
+screen = pygame.display.set_mode(screen_size)
+pygame.display.set_caption("Robot Maze Simulation")
+clock = pygame.time.Clock()
 
-estado_array = np.array(Mapa)
-num_filas, num_cols = estado_array.shape
-n_estados = num_filas * num_cols
+# Definición de colores
+colors = {
+    'free_path': (200, 200, 200),
+    'wall': (50, 50, 50),
+    'goal': (0, 255, 0),
+    'robot': (255, 0, 0),
+    'invisible_block': (100, 100, 100)
+}
 
-# Inicialización de matrices de transición
-T = {dir: np.zeros((n_estados, n_estados)) for dir in ['norte', 'sur', 'este', 'oeste']}
+# Obtener el mapa
+def get_map():
+    return np.array([
+        [1, 1, 1, 1, 1, 1, 1, -2, -2],
+        [1, -2, -2, 1, -2, -2, 1, -2, -2],
+        [1, 1, -2, 1, -2, -2, 1, -2, -2],
+        [-1, 1, 1, -1, 1, 1, 1, 1, 1],
+        [1, 1, 0, 1, 1, -2, 1, -2, -2],
+        [1, -2, -2, 3, -2, -2, 1, -2, -2],
+        [1, 1, 1, 1, -2, -2, -2, -2, -2]
+    ])
 
-# Probabilidad de éxito y error
-prob_exito = 0.9
-prob_error = 0.1
+# Dibujar el mapa
+def draw_map(map_array, robot_position):
+    rows, cols = map_array.shape
+    cell_size = (screen_size[0] // cols, screen_size[1] // rows)
+    for row in range(rows):
+        for col in range(cols):
+            cell_type = map_array[row][col]
+            color = colors['free_path'] if cell_type == 1 else colors['wall']
+            if cell_type == -2:
+                color = colors['invisible_block']
+            elif cell_type == 3:
+                color = colors['goal']
+            elif cell_type == -1:
+                color = colors['wall']
+            pygame.draw.rect(screen, color, (col * cell_size[0], row * cell_size[1], cell_size[0], cell_size[1]))
 
-# Rellenar matriz de recompensas y transiciones
-for i in range(num_filas):
-    for j in range(num_cols):
-        estado_actual = i * num_cols + j
-        if estado_array[i, j] == -1:
-            continue  # No acciones desde un obstáculo
-        acciones_posibles = []
-        for dir, vec in zip(['norte', 'sur', 'este', 'oeste'], [(-1, 0), (1, 0), (0, 1), (0, -1)]):
-            ni, nj = i + vec[0], j + vec[1]
-            if 0 <= ni < num_filas and 0 <= nj < num_cols and estado_array[ni, nj] != -1:
-                estado_siguiente = ni * num_cols + nj
-            else:
-                estado_siguiente = estado_actual  # Se queda en el mismo lugar si el movimiento es inválido
-            acciones_posibles.append((dir, estado_siguiente))
+    # Dibujar el robot
+    pygame.draw.rect(screen, colors['robot'], (robot_position[1] * cell_size[0], robot_position[0] * cell_size[1], cell_size[0], cell_size[1]))
 
-        # Aplicar probabilidad de éxito y error correctamente
-        for dir, estado_siguiente in acciones_posibles:
-            T[dir][estado_actual, estado_siguiente] += prob_exito
-            for other_dir, other_estado in acciones_posibles:
-                if other_dir != dir:
-                    T[other_dir][estado_actual, estado_siguiente] += prob_error / 3  # Dividir error entre las otras tres direcciones
+# Posición inicial del robot
+robot_position = [4, 2]
 
-        # Normalizar filas para que la suma sea 1
-        for dir in T:
-            suma = np.sum(T[dir][estado_actual, :])
-            if suma != 0:
-                T[dir][estado_actual, :] /= suma
+# Simulación del movimiento basado en alguna política (simplificado)
+# Movimientos: 'N', 'S', 'E', 'W'
+movements = ['N', 'E', 'E', 'S', 'S', 'W', 'N', 'E', 'N', 'N']
 
-# Convertir las matrices numpy a listas y guardarlas en un archivo JSON
-matrices_dict = {dir: matriz.tolist() for dir, matriz in T.items()}
-with open('matrices_transicion.json', 'w') as file:
-    json.dump(matrices_dict, file, indent=4)
+# Bucle principal
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    screen.fill((0, 0, 0))
+    draw_map(get_map(), robot_position)
 
+    # Aplicar movimiento
+    if movements:
+        move = movements.pop(0)
+        if move == 'N' and robot_position[0] > 0:
+            robot_position[0] -= 1
+        elif move == 'S' and robot_position[0] < get_map().shape[0] - 1:
+            robot_position[0] += 1
+        elif move == 'E' and robot_position[1] < get_map().shape[1] - 1:
+            robot_position[1] += 1
+        elif move == 'W' and robot_position[1] > 0:
+            robot_position[1] -= 1
+        
+        time.sleep(0.5)  # Retraso para visualizar el movimiento
+
+    pygame.display.flip()
+    clock.tick(60)  # Actualización de la pantalla a 60 fps
+
+pygame.quit()

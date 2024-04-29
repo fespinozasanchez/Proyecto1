@@ -2,13 +2,13 @@
 #Proyecto#1: Robótica_INFO1167
 #Felipe Espinoza - Oscar Uribe
 
-#%%
 import numpy as np
+import random
 # Esto solo es para imprimir matrices completas en consola
 # np.set_printoptions(threshold=np.inf, linewidth=np.inf)
 
 
-def map():
+def getMap():
     return [
         # 00  01  02  03  04  05  06  07  08
         [1,  1,  1,  1,  1,  1,  1, -2, -2],
@@ -34,12 +34,11 @@ def nReward(state: int, action) -> int:
 
 def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, ld: float = 1):
     nK = 0
-    vFunction.append(np.zeros(nStates))  # Initial Value Function as zeros
-    aPoliticas.append(np.zeros(nStates, dtype=int))  # Initial policy as zeros
+    vFunction.append(np.zeros(nStates))  # Función de valor inicial como ceros
+    aPoliticas.append(np.zeros(nStates, dtype=int))  # Política inicial como ceros
 
     while True:
         vFunction.append(np.zeros(nStates))
-        # Append new policy array for each iteration
         aPoliticas.append(np.zeros(nStates, dtype=int))
         for s in range(nStates):
             for a in range(nActions):
@@ -52,11 +51,9 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
             break
         nK += 1
 
-    print("Optimal policies calculated.")
-    print("-" * 24)
-    print(aPoliticas[nK])
-    print("-" * 24)
-    print(aPoliticas[nK].reshape(7, 9))
+    # Convertir índices de acción en direcciones
+    return aPoliticas[nK]
+
     politica = []
     for i in aPoliticas[nK]:
         if i == 0:
@@ -67,8 +64,55 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
             politica.append('E')
         elif i == 3:
             politica.append('W')
-    print("Política óptima: ", politica)
+    print("Value Iteration: ", politica)
     return aPoliticas[nK]
+
+def RelativeValueIteration(aMap, aT, nStates, nActions, nErr, goal):
+    J = np.zeros(nStates)  # Inicializar la función de valor
+    rho = 0  # Valor en el estado distinguido
+    distinguished_state = pos_to_index(goal[0], goal[1], len(aMap[0])) 
+
+    while True:
+        J_new = np.zeros(nStates)
+        for state in range(nStates):
+            if index_to_pos(state, len(aMap[0])) in [(row, col) for row in range(len(aMap)) for col in range(len(aMap[0])) if aMap[row][col] < 0]:
+                continue  # Saltar estados no permitidos
+            
+            max_value = float('-inf')
+            for action in range(nActions):
+                sum_prob = 0
+                for next_state in range(nStates):
+                    sum_prob += aT[action][state, next_state] * J[next_state]
+                max_value = max(max_value, nReward(state, action) + sum_prob)
+            
+            J_new[state] = max_value
+
+        # Normalizar usando el estado distinguido
+        rho_new = J_new[distinguished_state]
+        J_new -= rho_new
+        
+        # Verificar la convergencia
+        if norma_sp(J, J_new, nErr):
+            break
+        
+        J = J_new
+        rho = rho_new
+    
+    # Extraer la política óptima
+    policy = np.zeros(nStates, dtype=int)
+    for state in range(nStates):
+        best_action = None
+        max_value = float('-inf')
+        for action in range(nActions):
+            value = nReward(state, action) + sum(aT[action][state, next_state] * J[next_state] for next_state in range(nStates))
+            if value > max_value:
+                max_value = value
+                best_action = action
+        policy[state] = best_action
+    
+    return policy
+
+
 
 # -----------------------Creación matrices de transición probabilidad para cada acción-----------------------------
 def pos_to_index(row, col, nCols):
@@ -130,7 +174,6 @@ def Interface(Politicas):
     pygame.init()
     surface = pygame.display.set_mode((1000, 800))
     pygame.display.set_caption('Proyecto 1: Laberinto')
-    
     selected_policy = None
     
     def set_algorithm(value, algorithm):
@@ -143,31 +186,28 @@ def Interface(Politicas):
             print("Con la política del algoritmo seleccionado:", selected_policy)
         else:
             print("No se ha seleccionado ninguna política")
-
-    # Lista de algoritmos como tuplas
-    algoritmos = [("Value Iteration", 0), 
-                  ("Relative Value Iteration", 1), 
-                  ("Gauss-Siedel Value Iteration", 2), 
-                  ("Value Iteration con Factor de Descuento del 0.98", 3), 
-                  ("Relative Value Iteration con Factor de Descuento del 0.98", 4),
-                  ("Q-Value Iteration Clásico", 5), 
-                  ("Q-Value Iteration con Factor de Descuento del 0.98", 6)]
     
 
-    # Creación del menú
-    menu = pygame_menu.Menu('Opciones', 1000, 800, theme=pygame_menu.themes.THEME_SOLARIZED)
+    menu = pygame_menu.Menu('Opciones', 1000, 800, theme=pygame_menu.themes.THEME_SOLARIZED) # Main menu
 
-    #Nombre proyecto y autores en la parte superior de la pantalla
+    # Menu items
     menu.add.label("Proyecto 1: Laberinto", max_char=-1, font_size=35, font_color=(0,0,0))
     menu.add.label("Integrantes: Felipe Espinoza, Oscar Uribe", max_char=-1, font_size=25, font_color=(0,0,0))
     menu.add.label("", max_char=-1, font_size=45)
+    
+    algoritmos =[("Value Iteration", 0), 
+                ("Relative Value Iteration", 1), 
+                ("Gauss-Siedel Value Iteration", 2), 
+                ("Value Iteration con Factor de Descuento del 0.98", 3), 
+                ("Relative Value Iteration con Factor de Descuento del 0.98", 4),
+                ("Q-Value Iteration Clásico", 5), 
+                ("Q-Value Iteration con Factor de Descuento del 0.98", 6)]
 
     menu.add.selector('', algoritmos, onchange=set_algorithm)
     menu.add.button('Iniciar', start_labyrinth)
     menu.add.button('Salir', pygame_menu.events.EXIT)
 
-
-    # Bucle principal del menú
+    # Main loop
     while True:
         events = pygame.event.get()
         for event in events:
@@ -195,9 +235,9 @@ def main():
     aP = []                              # Matriz de Política *
     aT = []                              # Matrices de transición [N, S, E, W]
     aE = []                              # Value Function
-    # iK = 1                             # Número de iteracion actual
+    iK = 1                               # Número de iteracion actual
     goal = [5, 3]                        # Posición objetivo
-    aMap = map()                         # Mapa
+    aMap = getMap()                         # Mapa
 
     # Prob Trans. Accion N  = (0: go North)
     T_N = build_transition_matrix(aMap, 'N')
@@ -212,18 +252,15 @@ def main():
     T_W = build_transition_matrix(aMap, 'W')
 
     # Load Distr. Prob dada la Accion
-    aT.append(T_N)
-    aT.append(T_S)
-    aT.append(T_E)
-    aT.append(T_W)
+    aT.append(T_N), aT.append(T_S), aT.append(T_E), aT.append(T_W)
 
-    aPoliticas = ValueIteration(100, aE, nStates, nActions, aT, aQ, aP, nE, ld)
-    bPoliticas = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    cPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    dPoliticas = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-    ePoliticas = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
-    fPoliticas = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
-    gPoliticas = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+    aPoliticas = ValueIteration(100, aE, nStates, nActions, aT, aQ, aP, nErr, ld)
+    bPoliticas = RelativeValueIteration(aMap, aT, nStates, nActions, nErr, goal)
+    cPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] #Sin implementar
+    dPoliticas = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2] #Sin implementar
+    ePoliticas = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3] #Sin implementar
+    fPoliticas = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4] #Sin implementar
+    gPoliticas = [5, 5, 5, 5, 5, 5, 5, 5, 5, 5] #Sin implementar
 
     
     
