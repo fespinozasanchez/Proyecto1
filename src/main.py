@@ -164,20 +164,29 @@ def Interface(Politicas, aMapa):
         draw_labyrinth(surface, mapa, images)
         pygame.display.flip() 
 
-        current_pos = [0, 0]
+        current_pos = [0, 0]  # Asumimos que el robot comienza en la posición (0, 0)
+        nCols = 9
+        nRows = 7
+
         for action in selected_policy:
+            next_pos = list(current_pos)
             if action == 0:  # Arriba
-                current_pos[0] -= 1
+                next_pos[0] -= 1
             elif action == 1:  # Abajo
-                current_pos[0] += 1
+                next_pos[0] += 1
             elif action == 2:  # Derecha
-                current_pos[1] += 1
+                next_pos[1] += 1
             elif action == 3:  # Izquierda
-                current_pos[1] -= 1
+                next_pos[1] -= 1
 
-            if current_pos[0] < 0 or current_pos[0] >= mapa.shape[0] or current_pos[1] < 0 or current_pos[1] >= mapa.shape[1] or mapa[current_pos[0], current_pos[1]] == -2:
-                break
+            # Verificar si la nueva posición es válida
+            if 0 <= next_pos[0] < nRows and 0 <= next_pos[1] < nCols and mapa[next_pos[0], next_pos[1]] >= 0:
+                current_pos = next_pos
+            else:
+                # Mantener la posición actual si el movimiento es inválido
+                print(f"Intento de movimiento inválido a {next_pos}. Manteniendo posición en {current_pos}.")
 
+            # Dibujar estado actual del laberinto y posición del robot
             surface.fill((0, 0, 0))
             draw_labyrinth(surface, mapa, images)
             walle = pygame.transform.scale(images['walle'], (100, 100))
@@ -186,8 +195,8 @@ def Interface(Politicas, aMapa):
             pygame.time.delay(500)
 
         pygame.time.delay(2000)
-        pygame.quit()
-        exit()
+        # Vuelve al menú principal
+        menu.mainloop(surface)
 
     menu = pygame_menu.Menu('Opciones', 900, 700, theme=pygame_menu.themes.THEME_SOLARIZED) # Main menu
 
@@ -256,7 +265,7 @@ def main():
     aT.append(T_N), aT.append(T_S), aT.append(T_E), aT.append(T_W)
 
     aPoliticas = ValueIteration(100, aE, nStates, nActions, aT, aQ, aP, nErr, ld)
-    bPoliticas = RelativeValueIteration(aMap, aT, nStates, nActions, nErr, goal)
+    bPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] #Sin implementar
     cPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1] #Sin implementar
     dPoliticas = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2] #Sin implementar
     ePoliticas = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3] #Sin implementar
