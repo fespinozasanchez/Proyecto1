@@ -1,3 +1,4 @@
+#%%
 import numpy as np
 import pygame
 import time  # Importar time para retrasos

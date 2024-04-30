@@ -4,9 +4,6 @@
 
 import numpy as np
 import random
-# Esto solo es para imprimir matrices completas en consola
-# np.set_printoptions(threshold=np.inf, linewidth=np.inf)
-
 
 def getMap():
     return [
@@ -15,7 +12,7 @@ def getMap():
         [1, -2, -2,  1, -2, -2,  1, -2, -2],
         [1,  1, -2,  1, -2, -2,  1, -2, -2],
         [-1, 1,  1, -1,  1,  1,  1,  1,  1],
-        [1,  1,  0,  1,  1, -2,  1, -2, -2],
+        [1,  1, -2,  1,  1, -2,  1, -2, -2],
         [1, -2, -2,  3, -2, -2,  1, -2, -2],
         [1,  1,  1,  1, -2, -2, -2, -2, -2]
     ]
@@ -29,7 +26,7 @@ def nReward(state: int, action) -> int:
     if state == 3:
         return 100  # Meta
     else:
-        return -5
+        return -1
 
 
 def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, ld: float = 1):
@@ -52,66 +49,22 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
         nK += 1
 
     # Convertir índices de acción en direcciones
-    return aPoliticas[nK]
+    #return aPoliticas[nK]
 
     politica = []
     for i in aPoliticas[nK]:
         if i == 0:
-            politica.append('N')
+            politica.append('↑')
         elif i == 1:
-            politica.append('S')
+            politica.append('↓')
         elif i == 2:
-            politica.append('E')
+            politica.append('→')
         elif i == 3:
-            politica.append('W')
-    print("Value Iteration: ", politica)
+            politica.append('←')
     return aPoliticas[nK]
 
 def RelativeValueIteration(aMap, aT, nStates, nActions, nErr, goal):
-    J = np.zeros(nStates)  # Inicializar la función de valor
-    rho = 0  # Valor en el estado distinguido
-    distinguished_state = pos_to_index(goal[0], goal[1], len(aMap[0])) 
-
-    while True:
-        J_new = np.zeros(nStates)
-        for state in range(nStates):
-            if index_to_pos(state, len(aMap[0])) in [(row, col) for row in range(len(aMap)) for col in range(len(aMap[0])) if aMap[row][col] < 0]:
-                continue  # Saltar estados no permitidos
-            
-            max_value = float('-inf')
-            for action in range(nActions):
-                sum_prob = 0
-                for next_state in range(nStates):
-                    sum_prob += aT[action][state, next_state] * J[next_state]
-                max_value = max(max_value, nReward(state, action) + sum_prob)
-            
-            J_new[state] = max_value
-
-        # Normalizar usando el estado distinguido
-        rho_new = J_new[distinguished_state]
-        J_new -= rho_new
-        
-        # Verificar la convergencia
-        if norma_sp(J, J_new, nErr):
-            break
-        
-        J = J_new
-        rho = rho_new
-    
-    # Extraer la política óptima
-    policy = np.zeros(nStates, dtype=int)
-    for state in range(nStates):
-        best_action = None
-        max_value = float('-inf')
-        for action in range(nActions):
-            value = nReward(state, action) + sum(aT[action][state, next_state] * J[next_state] for next_state in range(nStates))
-            if value > max_value:
-                max_value = value
-                best_action = action
-        policy[state] = best_action
-    
-    return policy
-
+    pass
 
 
 # -----------------------Creación matrices de transición probabilidad para cada acción-----------------------------
@@ -170,25 +123,73 @@ def build_transition_matrix(aMap, action, p_success=0.9, p_side=0.05):
 import pygame 
 import pygame_menu
 
-def Interface(Politicas):
+def Interface(Politicas, aMapa):
     pygame.init()
-    surface = pygame.display.set_mode((1000, 800))
+    surface = pygame.display.set_mode((900, 700))
     pygame.display.set_caption('Proyecto 1: Laberinto')
-    selected_policy = None
-    
-    def set_algorithm(value, algorithm):
-        nonlocal selected_policy  # Indica que selected_policy es no local
-        selected_policy = Politicas[algorithm]
-    
-    def start_labyrinth():
-        print("Iniciando laberinto")
-        if selected_policy is not None:
-            print("Con la política del algoritmo seleccionado:", selected_policy)
-        else:
-            print("No se ha seleccionado ninguna política")
-    
+    selected_policy = Politicas[0]  # Política inicial predeterminada
+    font_path = "src/font/gunshipcondital.ttf"
+    clock = pygame.time.Clock()
+    mapa = np.array(aMapa)
 
-    menu = pygame_menu.Menu('Opciones', 1000, 800, theme=pygame_menu.themes.THEME_SOLARIZED) # Main menu
+    def load_images():
+        # Carga las imágenes del fondo
+        images = {}
+        for i in range(63):
+            images[i+1] = pygame.image.load(f'src/img/fondo/{i}.png')  # Ruta correcta necesaria
+        images['walle'] = pygame.image.load('src/img/walle.png')
+        return images
+    
+    def draw_labyrinth(surface, map_array, images):
+        # Dibuja el laberinto en la superficie
+        for i in range(map_array.shape[0]):
+            for j in range(map_array.shape[1]):
+                image_index = i * map_array.shape[1] + j + 1
+                if image_index <= 63:
+                    image = pygame.transform.scale(images[image_index], (100, 100))
+                    surface.blit(image, (j * 100, i * 100))
+                elif map_array[i, j] == -2:
+                    pygame.draw.rect(surface, (255, 255, 255), (j * 100, i * 100, 100, 100))
+
+    def set_algorithm(value, algorithm):
+        nonlocal selected_policy
+        selected_policy = Politicas[algorithm]  # Actualiza la política seleccionada
+
+
+
+    def start_labyrinth():
+        print("Iniciando laberinto con la política del algoritmo seleccionado:", selected_policy)
+
+        images = load_images()
+        draw_labyrinth(surface, mapa, images)
+        pygame.display.flip() 
+
+        current_pos = [0, 0]
+        for action in selected_policy:
+            if action == 0:  # Arriba
+                current_pos[0] -= 1
+            elif action == 1:  # Abajo
+                current_pos[0] += 1
+            elif action == 2:  # Derecha
+                current_pos[1] += 1
+            elif action == 3:  # Izquierda
+                current_pos[1] -= 1
+
+            if current_pos[0] < 0 or current_pos[0] >= mapa.shape[0] or current_pos[1] < 0 or current_pos[1] >= mapa.shape[1] or mapa[current_pos[0], current_pos[1]] == -2:
+                break
+
+            surface.fill((0, 0, 0))
+            draw_labyrinth(surface, mapa, images)
+            walle = pygame.transform.scale(images['walle'], (100, 100))
+            surface.blit(walle, (current_pos[1] * 100, current_pos[0] * 100))
+            pygame.display.flip()
+            pygame.time.delay(500)
+
+        pygame.time.delay(2000)
+        pygame.quit()
+        exit()
+
+    menu = pygame_menu.Menu('Opciones', 900, 700, theme=pygame_menu.themes.THEME_SOLARIZED) # Main menu
 
     # Menu items
     menu.add.label("Proyecto 1: Laberinto", max_char=-1, font_size=35, font_color=(0,0,0))
@@ -209,16 +210,16 @@ def Interface(Politicas):
 
     # Main loop
     while True:
-        events = pygame.event.get()
-        for event in events:
-            if event.type == pygame.QUIT:
-                exit()
+            events = pygame.event.get()
+            for event in events:
+                if event.type == pygame.QUIT:
+                    exit()
 
-        if menu.is_enabled():
-            menu.update(events)
-            menu.draw(surface)
+            if menu.is_enabled():
+                menu.update(events)
+                menu.draw(surface)
 
-        pygame.display.flip()
+            pygame.display.flip()
 # ----------------------------------------------------------------------------------------------------------------
 
 
@@ -265,7 +266,7 @@ def main():
     
     
     Politicas = {0: aPoliticas, 1: bPoliticas, 2: cPoliticas, 3: dPoliticas, 4: ePoliticas, 5: fPoliticas, 6: gPoliticas}
-    Interface(Politicas)
+    Interface(Politicas, aMap)
 
 
 if __name__ == "__main__":
