@@ -22,7 +22,7 @@ def norma_sp(aA, aB, nError=0):
 
 
 def nReward(state: int, action) -> int:
-    if state == 3:
+    if state == 49:
         return 100  # Meta
     else:
         return -5
