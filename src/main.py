@@ -181,6 +181,15 @@ def Interface(Politicas, aMapa):
     def start_labyrinth():
         print("Iniciando laberinto con la política del algoritmo seleccionado:", selected_policy)
 
+        # Loading screen
+        font = pygame.font.Font(font_path, 50)
+        text = font.render("Cargando...", True, (255, 255, 255))
+        surface.fill((0, 0, 0))
+        surface.blit(text, (300, 300))
+        pygame.display.flip()
+        pygame.time.delay(500)
+        
+
         images = load_images()
         draw_labyrinth(surface, mapa, images)
         pygame.display.flip()
@@ -207,8 +216,7 @@ def Interface(Politicas, aMapa):
             if 0 <= next_pos[0] < nRows and 0 <= next_pos[1] < nCols and mapa[next_pos[0], next_pos[1]] != -1:
                 current_pos = next_pos
             else:
-                print(f"Intento de movimiento inválido a {
-                    next_pos}. Manteniendo posición en {current_pos}.")
+                print(f"Intento de movimiento inválido a {next_pos}. Manteniendo posición en {current_pos}.")
 
             # Dibujar estado actual del laberinto y posición del robot
             surface.fill((0, 0, 0))
