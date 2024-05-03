@@ -8,7 +8,7 @@ import numpy as np
 import random
 
 
-def map() -> list:
+def get_map() -> list:
     return [
         [0,  1,  2,  3,  4,  5,  6, -2,  -2],
         [7, -2, -2,  8, -2, -2,  9, -2,  -2],
@@ -38,6 +38,12 @@ def map() -> list:
 def norma_sp(aA, aB, nError=0):
     return (max([abs(aA[i]-aB[i]) for i in range(len(aA))]) > nError)
 
+def norma_sp2(aA, aB, nError=0):
+    # Calcula la diferencia absoluta entre dos arrays y encuentra el valor máximo
+    max_diff = np.max(np.abs(np.array(aA) - np.array(aB)))
+    # Compara el máximo con el umbral de error y retorna un valor booleano
+    return max_diff < nError
+
 
 def nReward(state: int, mState: int) -> int:
     if state == mState:
@@ -45,9 +51,9 @@ def nReward(state: int, mState: int) -> int:
     elif state == 14 or state == 17:
         return -100
     elif state == -2:
-        return -100
-    else:
         return -50
+    else:
+        return -1
 
 # ----------------------------------------cREACIÓN MATRIZ TRANSISICION---------------------------------------------
 
@@ -113,9 +119,9 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
 
         for s in range(0, nStates):
             for a in range(0, nActions):
-                if s == 14 or s == 17 or s == -2:
+                if s in [14, 17, -2]:  
                     continue
-                aAux = [aTransition[a][s][i]*vFunction[nK-1][0][i]
+                aAux = [aTransition[a][s][i] * vFunction[nK-1][0][i]
                         for i in range(0, nStates)]
                 QValue[s][a] = nReward(s, sMeta) + ld*sum(aAux)
             vFunction[nK][0][s] = max(QValue[s][:])
@@ -123,6 +129,7 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
         if not norma_sp(vFunction[nK][0][:], vFunction[nK-1][0][:], nErr):
             break
         nK += 1
+
     print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
     return aPoliticas[0][:].reshape(7, 9)
 
@@ -130,16 +137,50 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
 def GaussSeidel() -> list:
     pass
 
+def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1):
+    nK = 1
+    s_ref = 3
 
-def RelativeValueIteration() -> list:
-    pass
+    while nK < nIteration:
+        vFunction.append(np.zeros((1, nStates)))
+        for s in range(0, nStates):
+            if s in {14, 17, -2}:
+                continue
+            for a in range(0, nActions):
+                aAux = [aTransition[a][s][i] * vFunction[nK-1][0][i] for i in range(0, nStates)] 
+                QValue[s][a] = (nReward(s, sMeta) + ld * sum(aAux)) - vFunction[nK-1][0][s_ref]
+            vFunction[nK][0][s] = max(QValue[s][:])
+            aPoliticas[0][s] = np.argmax(QValue[s][:])
+
+        if not norma_sp(vFunction[nK][0][:] - vFunction[nK-1][0][s_ref], 
+                        vFunction[nK-1][0][:] - vFunction[nK-1][0][s_ref], nErr):
+            break
+        nK += 1
+    
+    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
+    return aPoliticas[0][:].reshape(7, 9)
 
 
-def QValueIteration() -> list:
-    pass
+def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1):
+    nK = 1
+    while nK < nIteration:
+        vFunction.append(np.zeros((1, nStates)))
+        for s in range(nStates):
+            if s in [14, 17, -2]:  
+                continue
+            for a in range(nActions):
+                QValue[s][a] = sum(aTransition[a][s][i] * (nReward(s, sMeta) + ld * vFunction[nK-1][0][i]) for i in range(nStates))
+            vFunction[nK][0][s] = max(QValue[s])
+            aPoliticas[0][s] = np.argmax(QValue[s])
+
+        if np.linalg.norm(vFunction[nK][0] - vFunction[nK-1][0], ord=1) < nErr:
+            break
+        nK += 1
+
+    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0].reshape(7, 9)}")
+    return aPoliticas[0].reshape(7, 9)
 
 # ----------------------------------------Interfaz grafica con pygame---------------------------------------------
-
 
 def Interface(Politicas, aMapa):
     pygame.init()
@@ -169,35 +210,30 @@ def Interface(Politicas, aMapa):
                         images[image_index], (100, 100))
                     surface.blit(image, (j * 100, i * 100))
                 elif map_array[i, j] == -2:
-                    pygame.draw.rect(surface, (255, 255, 255),
-                                     (j * 100, i * 100, 100, 100))
+                    pygame.draw.rect(surface, (255, 255, 255), (j * 100, i * 100, 100, 100))
 
     def set_algorithm(value, algorithm):
         nonlocal selected_policy
-        # Actualiza la política seleccionada
         selected_policy = Politicas[algorithm]
 
 
     def start_labyrinth():
-        print("Iniciando laberinto con la política del algoritmo seleccionado:", selected_policy)
-
-        # Loading screen
-        font = pygame.font.Font(font_path, 50)
+        font = pygame.font.Font(font_path, 48)
         text = font.render("Cargando...", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(450, 350))
         surface.fill((0, 0, 0))
-        surface.blit(text, (300, 300))
+        surface.blit(text, text_rect)
         pygame.display.flip()
-        pygame.time.delay(500)
-        
+        clock.tick(60)
 
-        images = load_images()
+        images = load_images()        
         draw_labyrinth(surface, mapa, images)
-        pygame.display.flip()
+        pygame.time.delay(500)
 
-        # Asumimos que el robot comienza en la posición (0, 0)
-        current_pos = [1, 4]
-        nCols = 9
-        nRows = 7
+        # Posición aleatoria de inicio
+        random_pos = [[0, 0], [1, 4],[3, 8], [6, 6]]
+        current_pos = random.choice(random_pos)
+        nCols = 9 ; nRows = 7
 
         while current_pos != [5, 3]:  # Continuar hasta alcanzar el estado objetivo
             action = selected_policy[current_pos[0], current_pos[1]]
@@ -213,13 +249,12 @@ def Interface(Politicas, aMapa):
                 next_pos[1] -= 1
 
             # Verificar si la nueva posición es válida
-            if 0 <= next_pos[0] < nRows and 0 <= next_pos[1] < nCols and mapa[next_pos[0], next_pos[1]] != -1:
+            if (0 <= next_pos[0] < nRows) and (0 <= next_pos[1] < nCols) and (mapa[next_pos[0], next_pos[1]] != -1):
                 current_pos = next_pos
             else:
                 print(f"Intento de movimiento inválido a {next_pos}. Manteniendo posición en {current_pos}.")
 
-            # Dibujar estado actual del laberinto y posición del robot
-            surface.fill((0, 0, 0))
+            # Dibujar el laberinto y el robot 
             draw_labyrinth(surface, mapa, images)
             walle = pygame.transform.scale(images['walle'], (100, 100))
             surface.blit(walle, (current_pos[1] * 100, current_pos[0] * 100))
@@ -227,7 +262,6 @@ def Interface(Politicas, aMapa):
             pygame.time.delay(500)
 
         pygame.time.delay(2000)
-        # Vuelve al menú principal
         menu.mainloop(surface)
 
     menu = pygame_menu.Menu(
@@ -240,7 +274,7 @@ def Interface(Politicas, aMapa):
                    max_char=-1, font_size=25, font_color=(0, 0, 0))
     menu.add.label("", max_char=-1, font_size=45)
 
-    algoritmos = [("Value Iteration", 0),
+    algoritmos = [("Value Iteration", 0),      
                   ("Relative Value Iteration", 1),
                   ("Gauss-Siedel Value Iteration", 2),
                   ("Value Iteration con Factor de Descuento del 0.98", 3),
@@ -266,40 +300,47 @@ def Interface(Politicas, aMapa):
         pygame.display.flip()
 # ----------------------------------------------------------------------------------------------------------------
 
-
 def main():
-    nCols = 9                            # Número de columnas
-    nRows = 7                            # Número de filas
-    nStates = nCols * nRows              # Número de estados
-    nActions = 4                         # Número de acciones
-    Ld = 0.9                             # Factor de descuento
-    nError = 0.0001 * (1-Ld)/2*Ld        # Error
-    sMeta = 48                           # Estado Meta
-    aMap = map()                         # Mapa
-    aActions = ['N', 'S', 'E', 'W']      # Acciones
-    aTn = mTransition(aMap, aActions[0], nStates, nRows, nCols)  # Matriz de transición para la acción Norte
-    aTs = mTransition(aMap, aActions[1], nStates, nRows, nCols)  # Matriz de transición para la acción Sura
-    aTe = mTransition(aMap, aActions[2], nStates, nRows, nCols)  # Matriz de transición para la acción Este
-    aTw = mTransition(aMap, aActions[3], nStates, nRows, nCols)  # Matriz de transición para la acción Oeste
-    aQ = np.zeros((nStates, nActions))   # Matriz de Q-Valores
-    aP = np.zeros((1, nStates))          # Matriz de Políticas
-    aT = []                              # Matriz de matrices de transiciones
-    aE = []                              # Matriz de funciones de valor
-    aE.append(np.ones((1, nStates)))     # Función de valor inicial [1,1,1,1,1....]
-    aT.append(aTn); aT.append(aTs); aT.append(aTe); aT.append(aTw)
+    nRows = 7                                 # Cantidad de filas
+    nCols = 9                                 # Cantidad de columnas
+    nStates = nCols * nRows                   # Cantidad de estados
+    nActions = 4                              # Posibles acciones
+    aActions = ['N', 'S', 'E', 'W']           # Acciones
+    Ld = 0.9                                  # Factor de descuento
+    nError = 0.0001 * ((1 - Ld) / (2 * Ld))   # Error
+    sMeta = 48                                # Estado Meta
+    aMap = get_map()                          # Mapa 
 
+    aQ = np.zeros((nStates, nActions))        # Matriz de Q-Valores
+    aP = np.zeros((1, nStates))               # Matriz de Políticas
+    aE = []                                   # Matriz de funciones de valor
+    aT = []                                   # Matriz de matrices de transición
+    aE.append(np.ones((1, nStates)))          # Función de valor inicial [1,1,1,1,1....]    
+
+    # Matriz transicion de cada acción [N, S, E, W]
+    for a in aActions:
+        aT.append(mTransition(aMap, a, nStates, nRows, nCols))
+    
     # Value Iteration Classic
     vPoliticas = ValueIteration(1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta)
-    rPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  # Sin implementar
-    gPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  # Sin implementar
     vdPoliticas = ValueIteration( 1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta, Ld)
-    rePoliticas = [3, 3, 3, 3, 3, 3, 3, 3, 3, 3]  # Sin implementar
-    qvPoliticas = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]  # Sin implementar
-    qvdPoliticas = [1, 2, 2, 2, 2, 2, 1, 1, 0, 1, 2, 1, 0, 1, 0, 1, 3, 0,
-                    1, 3, 3, 3, 3, 1, 3, 1, 3, 0, 1, 0, 0, 2, 2, 2, 0]  # Sin implementar
+    
+    # Relative Value Iteration
+    rPoliticas = RelativeValueIteration(1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta)
+    rePoliticas = RelativeValueIteration(1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta, Ld)
+    
+    # Gauss-Seidel Value Iteration
+    gPoliticas = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  # Sin implementar
+    
+    # Q-Value Iteration
+    qvPoliticas = QValueIteration(1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta)
+    qvdPoliticas = QValueIteration(1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta, Ld)
 
-    Politicas = {0: vPoliticas, 1: rPoliticas, 2: gPoliticas,
-                 3: vdPoliticas, 4: rePoliticas, 5: qvPoliticas, 6: qvdPoliticas}
+    
+    Politicas = {0: vPoliticas, 1: rPoliticas, 2: gPoliticas,3: vdPoliticas, 
+                  4: rePoliticas, 5: qvPoliticas, 6: qvdPoliticas}
+    
+
     Interface(Politicas, aMap)
 
 
