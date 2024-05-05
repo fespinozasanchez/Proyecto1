@@ -19,7 +19,7 @@ def get_map() -> list:
     ]
 
 
-def norma_sp(aA, aB, nError=0):
+def norma_sp(aA, aB, nError=0) -> bool:
     return (max([abs(aA[i]-aB[i]) for i in range(len(aA))]) > nError)
 
 
@@ -36,15 +36,15 @@ def nReward(state: int, mState: int) -> int:
 # ----------------------------------------cREACIÓN MATRIZ TRANSISICION---------------------------------------------
 
 
-def pos_to_index(row, col, nCols):
+def pos_to_index(row: int, col: int, nCols: int) -> int:
     return row * nCols + col
 
 
-def index_to_pos(index, nCols):
+def index_to_pos(index: int, nCols: int) -> int:
     return (index // nCols, index % nCols)
 
 
-def mTransition(aMap, action, nStates, nRows, nCols, p_success=0.9, p_side=0.05):
+def mTransition(aMap: list, action: str, nStates: int, nRows: int, nCols: int, p_success: float = 0.9, p_side: float = 0.05) -> np.ndarray:
     """ Con esta función tomamos en cuenta las probabilidades de éxito y de ir a los lados  90% , 5% y 5% respectivamente 
         Ademas se toma en cuenta las murallas y bloques invisibles.
     """
@@ -90,7 +90,7 @@ def mTransition(aMap, action, nStates, nRows, nCols, p_success=0.9, p_side=0.05)
 # ----------------------------------------ALGORITMOS---------------------------------------------
 
 
-def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1):
+def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1) -> np.ndarray:
     nK = 1
     while nK < nIteration:
         vFunction.append(np.zeros((1, nStates)))
@@ -112,7 +112,7 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
     return aPoliticas[0][:].reshape(7, 9)
 
 
-def GaussSeidel(nIteration: int, nStates: int, nActions: int, aTransition: list, ld: float, sMeta: int, threshold: float = 0.01):
+def GaussSeidel(nIteration: int, nStates: int, nActions: int, aTransition: list, ld: float, sMeta: int, threshold: float = 0.01) -> tuple:
     # Inicializar la función de valor
     V = np.zeros(nStates)
 
@@ -156,7 +156,7 @@ def GaussSeidel(nIteration: int, nStates: int, nActions: int, aTransition: list,
     return V, policy.reshape(7, 9)
 
 
-def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1):
+def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1) -> np.ndarray:
     nK = 1
     s_ref = 3
 
@@ -182,7 +182,7 @@ def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActi
     return aPoliticas[0][:].reshape(7, 9)
 
 
-def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1):
+def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1) -> np.ndarray:
     nK = 1
     while nK < nIteration:
         vFunction.append(np.zeros((1, nStates)))
@@ -205,7 +205,7 @@ def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: in
 # ----------------------------------------Interfaz grafica con pygame---------------------------------------------
 
 
-def Interface(Politicas, aMapa):
+def Interface(Politicas, aMapa) -> None:
     pygame.init()
     surface = pygame.display.set_mode((900, 700))
     pygame.display.set_caption('Proyecto 1: Laberinto')
@@ -326,7 +326,7 @@ def Interface(Politicas, aMapa):
 # ----------------------------------------------------------------------------------------------------------------
 
 
-def main():
+def main() -> None:
     nRows = 7                                 # Cantidad de filas
     nCols = 9                                 # Cantidad de columnas
     nStates = nCols * nRows                   # Cantidad de estados
