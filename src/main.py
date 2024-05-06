@@ -104,56 +104,54 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
                 QValue[s][a] = nReward(s, sMeta) + ld*sum(aAux)
             vFunction[nK][0][s] = max(QValue[s][:])
             aPoliticas[0][s] = np.argmax(QValue[s][:])
+            
         if not norma_sp(vFunction[nK][0][:], vFunction[nK-1][0][:], nErr):
             break
         nK += 1
 
     print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
-    return aPoliticas[0][:].reshape(7, 9)
+    return nK, aPoliticas[0][:].reshape(7, 9)
 
 
-def GaussSeidel(nIteration: int, nStates: int, nActions: int, aTransition: list, ld: float, sMeta: int, threshold: float = 0.01) -> tuple:
-    # Inicializar la función de valor
-    V = np.zeros(nStates)
-
-    for iteration in range(nIteration):
+def GaussSeidel(nIteration: int, nStates: int, nActions: int, aTransition: list, aPoliticas: list,  sMeta: int, threshold: float = 0.01, ld: float = 1) -> tuple:
+    nK = 1
+    V = np.zeros(nStates)  # Inicializar los valores de los estados a cero
+    
+    while nK < nIteration:
         delta = 0  # Para verificar la convergencia
+        
         for s in range(nStates):
-            # Guardar el valor anterior del estado
             v_old = V[s]
-
-            # Calcular el valor máximo para las acciones posibles en este estado
             max_value = float('-inf')
+            best_action = None
+            
             for a in range(nActions):
                 # Sumatoria sobre los estados siguientes
                 sum_value = sum(aTransition[a][s][s_prime] * (
-                    nReward(s, sMeta) + ld * V[s_prime]) for s_prime in range(0, nStates))
-                max_value = max(max_value, sum_value)
-
-            # Actualizar el valor del estado usando la información más reciente
-            V[s] = max_value
-
+                    nReward(s, sMeta) + ld * V[s_prime]) for s_prime in range(nStates))
+                
+                # Buscar la acción que maximiza el valor del estado
+                if sum_value > max_value:
+                    max_value = sum_value
+                    best_action = a
+            
+            V[s] = max_value  # Actualizar el valor del estado con la información más reciente
+            
+            if best_action is not None:
+                aPoliticas[0][s] = best_action  # Guardar la mejor acción para el estado actual
+            
             # Actualizar delta para verificar la convergencia
             delta = max(delta, abs(v_old - V[s]))
-
+        
         # Comprobar si hemos alcanzado la convergencia
         if delta < threshold:
-            print(f'Converged after {iteration + 1} iterations.')
+            print(f'Convergencia alcanzada en la iteración {nK}')
             break
+        
+        nK += 1
 
-    # Extraer la política óptima después de la convergencia
-    policy = np.zeros(nStates, dtype=int)
-    for s in range(nStates):
-        # Calcular la mejor acción para cada estado
-        best_action_value = float('-inf')
-        for a in range(nActions):
-            action_value = sum(aTransition[a][s][s_prime] * (
-                nReward(s, sMeta) + ld * V[s_prime]) for s_prime in range(nStates))
-            if action_value > best_action_value:
-                best_action_value = action_value
-                policy[s] = a
-
-    return V, policy.reshape(7, 9)
+    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
+    return nK, aPoliticas[0][:].reshape(7, 9)
 
 
 def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1) -> np.ndarray:
@@ -179,7 +177,7 @@ def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActi
         nK += 1
 
     print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
-    return aPoliticas[0][:].reshape(7, 9)
+    return nK, aPoliticas[0][:].reshape(7, 9)
 
 
 def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int, aTransition: list, QValue: list, aPoliticas: list, nErr: float, sMeta: int, ld: float = 1) -> np.ndarray:
@@ -200,22 +198,22 @@ def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: in
         nK += 1
 
     print(f"Iteración: {nK} - Politica:\n {aPoliticas[0].reshape(7, 9)}")
-    return aPoliticas[0].reshape(7, 9)
+    return nK, aPoliticas[0].reshape(7, 9)
 
 # ----------------------------------------Interfaz grafica con pygame---------------------------------------------
 
-
-def Interface(Politicas, aMapa) -> None:
+def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, aQ: np.ndarray, aP: np.ndarray, aE: list, aT: list) -> None:    
+    
     pygame.init()
+    clock = pygame.time.Clock()
+
     surface = pygame.display.set_mode((900, 700))
     pygame.display.set_caption('Proyecto 1: Laberinto')
-    selected_policy = Politicas[0]  # Política inicial predeterminada
     font_path = "src/font/gunshipcondital.ttf"
-    clock = pygame.time.Clock()
     mapa = np.array(aMapa)
+    selected_policy = 0
 
     def load_images():
-        # Carga las imágenes del fondo
         images = {}
         for i in range(63):
             # Ruta correcta necesaria
@@ -224,7 +222,7 @@ def Interface(Politicas, aMapa) -> None:
         return images
 
     def draw_labyrinth(surface, map_array, images):
-        # Dibuja el laberinto en la superficie
+        # Draw maze and background images
         for i in range(map_array.shape[0]):
             for j in range(map_array.shape[1]):
                 image_index = i * map_array.shape[1] + j + 1
@@ -235,51 +233,73 @@ def Interface(Politicas, aMapa) -> None:
                 elif map_array[i, j] == -2:
                     pygame.draw.rect(surface, (255, 255, 255),
                                      (j * 100, i * 100, 100, 100))
+                    
 
     def set_algorithm(value, algorithm):
         nonlocal selected_policy
-        selected_policy = Politicas[algorithm]
+        selected_policy = algorithm
 
-    def start_labyrinth():
-        font = pygame.font.Font(font_path, 48)
+    def start_labyrinth(iteraciones, success=90):
+        font = pygame.font.Font(font_path, 54)
         text = font.render("Cargando...", True, (255, 255, 255))
         text_rect = text.get_rect(center=(450, 350))
         surface.fill((0, 0, 0))
         surface.blit(text, text_rect)
         pygame.display.flip()
-        clock.tick(60)
 
         images = load_images()
         draw_labyrinth(surface, mapa, images)
-        pygame.time.delay(500)
 
-        # Posición aleatoria de inicio
+        # Probabilidad de error dado el porcentaje de éxito
+        pError = (100 - success) / 100
+
+        # Run the selected algorithm
+        nonlocal selected_policy
+        if selected_policy == 0:
+            converged, policy = ValueIteration(iteraciones, aE, nStates, nActions, aT, aQ, aP, pError, sMeta)
+        elif selected_policy == 1:
+            converged, policy = RelativeValueIteration(iteraciones, aE, nStates, nActions, aT, aQ, aP, pError, sMeta)
+        elif selected_policy == 2:
+            converged, policy = GaussSeidel(iteraciones, nStates, nActions, aT, aP, sMeta)
+        elif selected_policy == 3:
+            converged, policy = ValueIteration(iteraciones, aE, nStates, nActions, aT, aQ, aP, pError, sMeta, Ld)
+        elif selected_policy == 4:
+            converged, policy = RelativeValueIteration(iteraciones, aE, nStates, nActions, aT, aQ, aP, pError, sMeta, Ld)
+        elif selected_policy == 5:
+            converged, policy = QValueIteration(iteraciones, aE, nStates, nActions, aT, aQ, aP, pError, sMeta)
+        elif selected_policy == 6:
+            converged, policy = QValueIteration(iteraciones, aE, nStates, nActions, aT, aQ, aP, pError, sMeta, Ld)
+
+
+        # Wait the convergence
+        if policy is None:
+            return
+                
+        # Random start position
         random_pos = [[0, 0], [1, 4], [3, 8], [6, 6]]
         current_pos = random.choice(random_pos)
-        nCols = 9
-        nRows = 7
+        nCols = 9; nRows = 7
 
         while current_pos != [5, 3]:  # Continuar hasta alcanzar el estado objetivo
-            action = selected_policy[current_pos[0], current_pos[1]]
+            action = policy[current_pos[0], current_pos[1]]
 
             next_pos = list(current_pos)
-            if action == 0:  # Arriba
+            if action == 0:  # Up
                 next_pos[0] -= 1
-            elif action == 1:  # Abajo
+            elif action == 1:  # Down
                 next_pos[0] += 1
-            elif action == 2:  # Derecha
+            elif action == 2:  # Right
                 next_pos[1] += 1
-            elif action == 3:  # Izquierda
+            elif action == 3:  # Left
                 next_pos[1] -= 1
 
-            # Verificar si la nueva posición es válida
+            # Verify if the next position is valid
             if (0 <= next_pos[0] < nRows) and (0 <= next_pos[1] < nCols) and (mapa[next_pos[0], next_pos[1]] != -1):
                 current_pos = next_pos
             else:
-                print(f"Intento de movimiento inválido a {
-                      next_pos}. Manteniendo posición en {current_pos}.")
+                print(f"Intento de movimiento inválido a {next_pos}. Manteniendo posición en {current_pos}.")
 
-            # Dibujar el laberinto y el robot
+            # Draw the maze and the robot
             draw_labyrinth(surface, mapa, images)
             walle = pygame.transform.scale(images['walle'], (100, 100))
             surface.blit(walle, (current_pos[1] * 100, current_pos[0] * 100))
@@ -290,14 +310,14 @@ def Interface(Politicas, aMapa) -> None:
         menu.mainloop(surface)
 
     menu = pygame_menu.Menu(
-        'Opciones', 900, 700, theme=pygame_menu.themes.THEME_SOLARIZED)  # Main menu
+        'Opciones', 900, 700, theme=pygame_menu.themes.THEME_SOLARIZED)  
 
-    # Menu items
+    # Menu configuration
     menu.add.label("Proyecto 1: Laberinto", max_char=-
-                   1, font_size=35, font_color=(0, 0, 0))
-    menu.add.label("Integrantes: Felipe Espinoza, Oscar Uribe",
-                   max_char=-1, font_size=25, font_color=(0, 0, 0))
-    menu.add.label("", max_char=-1, font_size=45)
+                   1, font_size=40, font_color=(0, 0, 0))
+    menu.add.label("Integrantes: Felipe Espinoza - Oscar Uribe",
+                   max_char=-1, font_size=20, font_color=(0, 0, 0))
+    menu.add.label("", max_char=-1, font_size=10)
 
     algoritmos = [("Value Iteration", 0),
                   ("Relative Value Iteration", 1),
@@ -307,9 +327,44 @@ def Interface(Politicas, aMapa) -> None:
                   ("Q-Value Iteration Clásico", 5),
                   ("Q-Value Iteration con Factor de Descuento del 0.98", 6)]
 
-    menu.add.selector('', algoritmos, onchange=set_algorithm)
-    menu.add.button('Iniciar', start_labyrinth)
-    menu.add.button('Salir', pygame_menu.events.EXIT)
+    menu.add.selector('', algoritmos, onchange=set_algorithm, font_size=25)
+
+    menu.add.label("", max_char=-1, font_size=10)    
+    menu.add.range_slider('Número de Iteraciones:', 550, (100, 900), 1, 
+                        rangeslider_id='itera',
+                        value_format=lambda x: str(int(x)),
+                        font_size=25, font_color=(0, 0, 0))
+           
+    menu.add.range_slider('Probabilidad de exito:', 90, (0, 100), 1, 
+                        rangeslider_id='success',value_format=lambda x: str(int(x)),
+                        font_size=25, font_color=(0, 0, 0))
+
+
+    menu.add.label("", max_char=-1, font_size=10)
+
+    # Start Simulation button
+    menu.add.button(
+    'Iniciar', 
+    lambda: start_labyrinth(menu.get_input_data()['itera'],  menu.get_input_data()['success']), 
+    font_size=20,
+    border_width=1, 
+    font_color=(0, 0, 0),
+    border_color='white',
+    padding=10, 
+    shadow_width=2)
+
+    menu.add.label("", max_char=-1, font_size=3)
+    
+    # Histogram button
+    menu.add.button(
+        'Histogramas', 
+        lambda: start_labyrinth(menu.get_input_data()['itera'],  menu.get_input_data()['success']), 
+        font_size=20,
+        border_width=1,
+        font_color=(0, 0, 0),
+        border_color='white',
+        padding=10,  
+        shadow_width=2)
 
     # Main loop
     while True:
@@ -323,57 +378,31 @@ def Interface(Politicas, aMapa) -> None:
             menu.draw(surface)
 
         pygame.display.flip()
+        clock.tick(30)
 # ----------------------------------------------------------------------------------------------------------------
 
 
 def main() -> None:
+    aMapa = get_map()
     nRows = 7                                 # Cantidad de filas
     nCols = 9                                 # Cantidad de columnas
     nStates = nCols * nRows                   # Cantidad de estados
     nActions = 4                              # Posibles acciones
     aActions = ['N', 'S', 'E', 'W']           # Acciones
     Ld = 0.9                                  # Factor de descuento
-    nError = 0.0001 * ((1 - Ld) / (2 * Ld))   # Error
     sMeta = 48                                # Estado Meta
-    aMap = get_map()                          # Mapa
-
+    
     aQ = np.zeros((nStates, nActions))        # Matriz de Q-Valores
     aP = np.zeros((1, nStates))               # Matriz de Políticas
-    aE = []                                   # Matriz de funciones de valor
+    aE = [np.ones((1, nStates))]              # Matriz de funciones de valor
     aT = []                                   # Matriz de matrices de transición
-    # Función de valor inicial [1,1,1,1,1....]
-    aE.append(np.ones((1, nStates)))
 
     # Matriz transicion de cada acción [N, S, E, W]
     for a in aActions:
-        aT.append(mTransition(aMap, a, nStates, nRows, nCols))
+        aT.append(mTransition(aMapa, a, nStates, nRows, nCols))
 
-    # Value Iteration Classic
-    vPoliticas = ValueIteration(
-        1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta)
-    vdPoliticas = ValueIteration(
-        1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta, Ld)
-
-    # Relative Value Iteration
-    rPoliticas = RelativeValueIteration(
-        1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta)
-    rePoliticas = RelativeValueIteration(
-        1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta, Ld)
-
-    # Gauss-Seidel Value Iteration
-    _, gPoliticas = GaussSeidel(1000, nStates, nActions, aT, Ld, sMeta)
-
-    # Q-Value Iteration
-    qvPoliticas = QValueIteration(
-        1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta)
-    qvdPoliticas = QValueIteration(
-        1000, aE, nStates, nActions, aT, aQ, aP, nError, sMeta, Ld)
-
-    Politicas = {0: vPoliticas, 1: rPoliticas, 2: gPoliticas, 3: vdPoliticas,
-                 4: rePoliticas, 5: qvPoliticas, 6: qvdPoliticas}
-
-    Interface(Politicas, aMap)
-
-
+    
+    Interface(aMapa, nStates, nActions, Ld, sMeta, aQ, aP, aE, aT)
+    
 if __name__ == "__main__":
     main()
