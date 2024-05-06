@@ -335,7 +335,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
                         value_format=lambda x: str(int(x)),
                         font_size=25, font_color=(0, 0, 0))
            
-    menu.add.range_slider('Probabilidad de exito:', 90, (0, 100), 1, 
+    menu.add.range_slider('Probabilidad de éxito:', 90, (50, 100), 1,
                         rangeslider_id='success',value_format=lambda x: str(int(x)),
                         font_size=25, font_color=(0, 0, 0))
 
