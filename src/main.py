@@ -648,8 +648,13 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
         nCols = 9
         nRows = 7
 
+        # Show the optimal policy
+        print("\n Política optima (representada como matriz):")
+        print(f"{policy}\n")
+
         while current_pos != [5, 3]:  # Continuar hasta alcanzar el estado objetivo
             action = policy[current_pos[0], current_pos[1]]
+            arrow = "↑" if action == 0 else "↓" if action == 1 else "→" if action == 2 else "←"
 
             next_pos = list(current_pos)
             if action == 0:  # Up
@@ -664,9 +669,10 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
             # Verify if the next position is valid
             if (0 <= next_pos[0] < nRows) and (0 <= next_pos[1] < nCols) and (mapa[next_pos[0], next_pos[1]] != -1):
                 current_pos = next_pos
+                print(f"Movimiento a {current_pos}. {arrow}")
             else:
-                print(f"Intento de movimiento invalido a {
-                      next_pos}. Manteniendo posicion en {current_pos}.")
+                print(f"Intento de movimiento invalido a {next_pos}. Manteniendo posicion en {current_pos}.")
+  
 
             # Draw the maze and the robot
             draw_labyrinth(surface, mapa, images)
@@ -683,7 +689,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
         pError = [0.02, 0.05, 0.1, 0.3, 0.5, 0.8]
         pError = np.array([98, 95, 90, 70, 50, 20])/100
         results = []
-        iterations = 100000
+        iterations = 100
 
         # Loading screen
         font = pygame.font.Font(font_path, 54)
@@ -734,8 +740,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
 
         # Print results
         for result in results:
-            print(f"{result['algorithm']} - Probabilidad de exito: {
-                  result['probability']} - Iteraciones: {result['convergence']}")
+            print(f"{result['algorithm']} - Probabilidad de exito: {result['probability']} - Iteraciones: {result['convergence']}")
 
         # Plot results
         fig, ax = plt.subplots()
@@ -771,7 +776,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
     menu.add.selector('', algoritmos, onchange=set_algorithm, font_size=25)
 
     menu.add.label("", max_char=-1, font_size=10)
-    menu.add.range_slider('Numero de Iteraciones:', 550, (100, 1000), 1,
+    menu.add.range_slider('Numero de Iteraciones:', 300, (100, 500), 1,
                           rangeslider_id='itera',
                           value_format=lambda x: str(int(x)),
                           font_size=25, font_color=(0, 0, 0))
