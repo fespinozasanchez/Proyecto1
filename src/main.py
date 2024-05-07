@@ -1,10 +1,11 @@
-# Proyecto#1: Robótica_INFO1167
+# Proyecto#1: Robotica_INFO1167
 # Felipe Espinoza - Oscar Uribe
 
 import pygame
 import pygame_menu
 import numpy as np
 import random
+import matplotlib.pyplot as plt
 
 
 def get_map() -> list:
@@ -33,7 +34,7 @@ def nReward(state: int, mState: int) -> int:
     else:
         return -1
 
-# ----------------------------------------cREACIÓN MATRIZ TRANSISICION---------------------------------------------
+# ----------------------------------------cREACIoN MATRIZ TRANSISICION---------------------------------------------
 
 
 def pos_to_index(row: int, col: int, nCols: int) -> int:
@@ -45,10 +46,10 @@ def index_to_pos(index: int, nCols: int) -> int:
 
 
 def mTransition(aMap: list, action: str, nStates: int, nRows: int, nCols: int, p_success: float = 0.9, p_side: float = 0.05) -> np.ndarray:
-    """ Con esta función tomamos en cuenta las probabilidades de éxito y de ir a los lados  90% , 5% y 5% respectivamente 
+    """ Con esta funcion tomamos en cuenta las probabilidades de exito y de ir a los lados  90% , 5% y 5% respectivamente 
         Ademas se toma en cuenta las murallas y bloques invisibles.
     """
-    T = np.zeros((nStates, nStates))  # Matriz de transición initializada en 0
+    T = np.zeros((nStates, nStates))  # Matriz de transicion initializada en 0
 
     for row in range(nRows):
         for col in range(nCols):
@@ -57,7 +58,7 @@ def mTransition(aMap: list, action: str, nStates: int, nRows: int, nCols: int, p
                 continue
             current_index = pos_to_index(row, col, nCols)
 
-            # Determinar las posiciones objetivo para cada acción
+            # Determinar las posiciones objetivo para cada accion
             if action == 'N':
                 main_pos = (row - 1, col)
                 side1_pos = (row, col - 1)
@@ -109,7 +110,7 @@ def ValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: int
             break
         nK += 1
 
-    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
+    print(f"Iteracion: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
     return nK, aPoliticas[0][:].reshape(7, 9)
 
 
@@ -130,27 +131,27 @@ def GaussSeidel(nIteration: int, nStates: int, nActions: int, aTransition: list,
                 sum_value = sum(aTransition[a][s][s_prime] * (
                     nReward(s, sMeta) + ld * V[s_prime]) for s_prime in range(nStates))
                 
-                # Buscar la acción que maximiza el valor del estado
+                # Buscar la accion que maximiza el valor del estado
                 if sum_value > max_value:
                     max_value = sum_value
                     best_action = a
             
-            V[s] = max_value  # Actualizar el valor del estado con la información más reciente
+            V[s] = max_value  # Actualizar el valor del estado con la informacion mas reciente
             
             if best_action is not None:
-                aPoliticas[0][s] = best_action  # Guardar la mejor acción para el estado actual
+                aPoliticas[0][s] = best_action  # Guardar la mejor accion para el estado actual
             
             # Actualizar delta para verificar la convergencia
             delta = max(delta, abs(v_old - V[s]))
         
         # Comprobar si hemos alcanzado la convergencia
         if delta < threshold:
-            print(f'Convergencia alcanzada en la iteración {nK}')
+            print(f'Convergencia alcanzada en la iteracion {nK}')
             break
         
         nK += 1
 
-    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
+    print(f"Iteracion: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
     return nK, aPoliticas[0][:].reshape(7, 9)
 
 
@@ -176,7 +177,7 @@ def RelativeValueIteration(nIteration: int, vFunction: list, nStates: int, nActi
             break
         nK += 1
 
-    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
+    print(f"Iteracion: {nK} - Politica:\n {aPoliticas[0][:].reshape(7, 9)}")
     return nK, aPoliticas[0][:].reshape(7, 9)
 
 
@@ -197,7 +198,7 @@ def QValueIteration(nIteration: int, vFunction: list, nStates: int, nActions: in
             break
         nK += 1
 
-    print(f"Iteración: {nK} - Politica:\n {aPoliticas[0].reshape(7, 9)}")
+    print(f"Iteracion: {nK} - Politica:\n {aPoliticas[0].reshape(7, 9)}")
     return nK, aPoliticas[0].reshape(7, 9)
 
 # ----------------------------------------Interfaz grafica con pygame---------------------------------------------
@@ -234,7 +235,6 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
                     pygame.draw.rect(surface, (255, 255, 255),
                                      (j * 100, i * 100, 100, 100))
                     
-
     def set_algorithm(value, algorithm):
         nonlocal selected_policy
         selected_policy = algorithm
@@ -250,7 +250,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
         images = load_images()
         draw_labyrinth(surface, mapa, images)
 
-        # Probabilidad de error dado el porcentaje de éxito
+        # Probabilidad de error dado el porcentaje de exito
         pError = (100 - success) / 100
 
         # Run the selected algorithm
@@ -297,7 +297,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
             if (0 <= next_pos[0] < nRows) and (0 <= next_pos[1] < nCols) and (mapa[next_pos[0], next_pos[1]] != -1):
                 current_pos = next_pos
             else:
-                print(f"Intento de movimiento inválido a {next_pos}. Manteniendo posición en {current_pos}.")
+                print(f"Intento de movimiento invalido a {next_pos}. Manteniendo posicion en {current_pos}.")
 
             # Draw the maze and the robot
             draw_labyrinth(surface, mapa, images)
@@ -308,6 +308,76 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
 
         pygame.time.delay(2000)
         menu.mainloop(surface)
+
+    def histogram():
+        
+        pError = [0.02, 0.05, 0.1, 0.3, 0.5, 0.8]
+        results = []
+        iterations = 100
+
+        # Loading screen
+        font = pygame.font.Font(font_path, 54)
+        loading_text = font.render("Cargando...", True, (255, 255, 255))
+        loading_text_rect = loading_text.get_rect(center=(450, 350))
+        surface.fill((0, 0, 0))
+        surface.blit(loading_text, loading_text_rect)
+        pygame.display.flip()
+
+        #'probability': probabilidad de error a exito
+
+        for probabilidad in pError:
+            results.append({
+                'algorithm': 'ValueIteration',
+                'probability': 100 - probabilidad*100,
+                'convergence': ValueIteration(iterations, aE, nStates, nActions, aT, aQ, aP, probabilidad, sMeta)[0],
+            })
+            results.append({
+                'algorithm': 'RelativeValueIteration',
+                'probability': 100 - probabilidad*100,
+                'convergence': RelativeValueIteration(iterations, aE, nStates, nActions, aT, aQ, aP, probabilidad, sMeta)[0],
+            })
+            results.append({
+                'algorithm': 'GaussSeidel',
+                'probability': 100 - probabilidad*100,
+                'convergence': GaussSeidel(iterations, nStates, nActions, aT, aP, sMeta)[0],
+            })
+            results.append({
+                'algorithm': 'ValueIteration con Factor de Descuento del 0.98',
+                'probability': 100 - probabilidad*100,
+                'convergence': ValueIteration(iterations, aE, nStates, nActions, aT, aQ, aP, probabilidad, sMeta, 0.98)[0],
+            })
+            results.append({
+                'algorithm': 'RelativeValueIteration con Factor de Descuento del 0.98',
+                'probability': 100 - probabilidad*100,
+                'convergence': RelativeValueIteration(iterations, aE, nStates, nActions, aT, aQ, aP, probabilidad, sMeta, 0.98)[0],
+            })
+            results.append({
+                'algorithm': 'QValueIteration Clasico',
+                'probability': 100 - probabilidad*100,
+                'convergence': QValueIteration(iterations, aE, nStates, nActions, aT, aQ, aP, probabilidad, sMeta)[0],
+            })
+            results.append({
+                'algorithm': 'QValueIteration con Factor de Descuento del 0.98',
+                'probability': 100 - probabilidad*100,
+                'convergence': QValueIteration(iterations, aE, nStates, nActions, aT, aQ, aP, probabilidad, sMeta, 0.98)[0],
+            })
+    
+        # Print results
+        for result in results:
+            print(f"{result['algorithm']} - Probabilidad de exito: {result['probability']} - Iteraciones: {result['convergence']}")
+
+        # Plot results
+        fig, ax = plt.subplots()
+        for algorithm in ['ValueIteration', 'RelativeValueIteration', 'GaussSeidel', 'ValueIteration con Factor de Descuento del 0.98', 'RelativeValueIteration con Factor de Descuento del 0.98', 'QValueIteration Clasico', 'QValueIteration con Factor de Descuento del 0.98']:
+            data = [result['convergence'] for result in results if result['algorithm'] == algorithm]
+            ax.plot(pError, data, label=algorithm)
+
+        ax.set(xlabel='Probabilidad de error', ylabel='Iteraciones',
+            title='Iteraciones para converger')
+        ax.grid()
+        ax.legend()
+        plt.show()
+
 
     menu = pygame_menu.Menu(
         'Opciones', 900, 700, theme=pygame_menu.themes.THEME_SOLARIZED)  
@@ -324,18 +394,18 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
                   ("Gauss-Siedel Value Iteration", 2),
                   ("Value Iteration con Factor de Descuento del 0.98", 3),
                   ("Relative Value Iteration con Factor de Descuento del 0.98", 4),
-                  ("Q-Value Iteration Clásico", 5),
+                  ("Q-Value Iteration Clasico", 5),
                   ("Q-Value Iteration con Factor de Descuento del 0.98", 6)]
 
     menu.add.selector('', algoritmos, onchange=set_algorithm, font_size=25)
 
     menu.add.label("", max_char=-1, font_size=10)    
-    menu.add.range_slider('Número de Iteraciones:', 550, (100, 900), 1, 
+    menu.add.range_slider('Numero de Iteraciones:', 550, (100, 900), 1, 
                         rangeslider_id='itera',
                         value_format=lambda x: str(int(x)),
                         font_size=25, font_color=(0, 0, 0))
            
-    menu.add.range_slider('Probabilidad de éxito:', 90, (50, 100), 1,
+    menu.add.range_slider('Probabilidad de exito:', 90, (50, 100), 1,
                         rangeslider_id='success',value_format=lambda x: str(int(x)),
                         font_size=25, font_color=(0, 0, 0))
 
@@ -358,7 +428,7 @@ def Interface(aMapa: list, nStates: int, nActions: int, Ld: float, sMeta: int, a
     # Histogram button
     menu.add.button(
         'Histogramas', 
-        lambda: start_labyrinth(menu.get_input_data()['itera'],  menu.get_input_data()['success']), 
+        lambda: histogram(), 
         font_size=20,
         border_width=1,
         font_color=(0, 0, 0),
@@ -393,11 +463,11 @@ def main() -> None:
     sMeta = 48                                # Estado Meta
     
     aQ = np.zeros((nStates, nActions))        # Matriz de Q-Valores
-    aP = np.zeros((1, nStates))               # Matriz de Políticas
+    aP = np.zeros((1, nStates))               # Matriz de Politicas
     aE = [np.ones((1, nStates))]              # Matriz de funciones de valor
-    aT = []                                   # Matriz de matrices de transición
+    aT = []                                   # Matriz de matrices de transicion
 
-    # Matriz transicion de cada acción [N, S, E, W]
+    # Matriz transicion de cada accion [N, S, E, W]
     for a in aActions:
         aT.append(mTransition(aMapa, a, nStates, nRows, nCols))
 
